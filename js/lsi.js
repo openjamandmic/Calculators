@@ -258,37 +258,45 @@
   const C = window.LsiCalc;
 
   const IDS = ["lsiVolume", "ph", "temp", "ta", "ch", "cya", "tds", "tPh", "tTa", "tCh", "tCya", "fillCh", "acidType", "calType", "cyaType"];
-  const DEFAULTS = { lsiVolume: "15000", ph: "7.8", temp: "84", ta: "120", ch: "250", cya: "50", tds: "1200", tPh: "7.5", tTa: "90", tCh: "300", tCya: "50", fillCh: "", acidType: "ma31", calType: "di77", cyaType: "gran" };
   const store = remember("fp-lsi-v1", IDS);
   let unit = "F";
   try { unit = localStorage.getItem("fp-lsi-unit") === "C" ? "C" : "F"; } catch (e) { /* ignore */ }
   let last = null;
 
+  // Blank readings stay NaN (results show "—"); blank CYA counts as 0 and blank TDS as under 1,000 ppm.
   function current() {
-    const n = (id, d) => { const x = num(id); return Number.isFinite(x) ? x : d; };
-    const t = n("temp", 84);
-    return { volume: Math.max(0, n("lsiVolume", 0)), ph: n("ph", 7.5), tempF: unit === "C" ? C.cToF(t) : t, ta: Math.max(0, n("ta", 0)), ch: Math.max(0, n("ch", 0)), cya: Math.max(0, n("cya", 0)), tds: Math.max(0, n("tds", 0)) };
+    const t = num("temp");
+    const cya = num("cya"), tds = num("tds");
+    return {
+      volume: num("lsiVolume"), ph: num("ph"), tempF: unit === "C" ? C.cToF(t) : t,
+      ta: num("ta"), ch: num("ch"),
+      cya: Number.isFinite(cya) ? Math.max(0, cya) : 0, cyaBlank: !Number.isFinite(cya),
+      tds: Number.isFinite(tds) ? Math.max(0, tds) : 0, tdsBlank: !Number.isFinite(tds)
+    };
   }
-  function targets() {
-    const n = (id, d) => { const x = num(id); return Number.isFinite(x) ? x : d; };
-    return { ph: n("tPh", 7.5), ta: Math.max(0, n("tTa", 0)), ch: Math.max(0, n("tCh", 0)), cya: Math.max(0, n("tCya", 0)) };
+  function targets(cur) {
+    const cya = num("tCya");
+    return { ph: num("tPh"), ta: num("tTa"), ch: num("tCh"), cya: Number.isFinite(cya) ? Math.max(0, cya) : cur.cya, cyaBlank: !Number.isFinite(cya) };
   }
-
+  const fin = (v) => Number.isFinite(v);
+  const f2 = (v, d) => (fin(v) ? v.toFixed(d) : "—");
   function signed(v, d) {
+    if (!fin(v)) return "—";
     const r = Math.round(v * Math.pow(10, d)) / Math.pow(10, d);
     return (r > 0 ? "+" : r < 0 ? "−" : "") + Math.abs(r).toFixed(d);
   }
-  function gauge(valId, wordId, needleId, v) {
+  function gauge(valId, wordId, needleId, v, emptyWord) {
     const d = C.describe(v);
     const el = document.getElementById(valId);
-    el.textContent = Number.isFinite(v) ? signed(v, 2) : "—";
+    el.textContent = signed(v, 2);
     el.className = "gauge-value " + d.cls;
-    setText(wordId, d.word);
-    const pct = Math.max(0, Math.min(100, (Math.max(-1, Math.min(1, v)) + 1) * 50));
+    setText(wordId, fin(v) ? d.word : emptyWord);
+    const pct = fin(v) ? Math.max(0, Math.min(100, (Math.max(-1, Math.min(1, v)) + 1) * 50)) : 50;
     document.getElementById(needleId).style.left = pct + "%";
+    document.getElementById(needleId).style.opacity = fin(v) ? "1" : ".25";
     return d;
   }
-  function tempLabel(f) { return unit === "C" ? fmt.int(C.fToC(f)) + " °C" : fmt.int(f) + " °F"; }
+  function tempLabel(f) { return !fin(f) ? "—" : unit === "C" ? fmt.int(C.fToC(f)) + " °C" : fmt.int(f) + " °F"; }
 
   // amount formatting
   function dry(grams) {
@@ -310,57 +318,71 @@
   }
 
   function render() {
-    const cur = current(), tgt = targets();
+    const cur = current(), tgt = targets(cur);
     const opt = { acid: document.getElementById("acidType").value, calcium: document.getElementById("calType").value, fillCh: num("fillCh"), noAeration: document.getElementById("noAeration").checked };
-    const now = C.lsi(cur);
-    const want = C.lsi({ ph: tgt.ph, tempF: cur.tempF, ta: tgt.ta, ch: tgt.ch, cya: tgt.cya, tds: cur.tds });
-    const p = C.plan(cur, tgt, opt);
-    const after = C.lsi({ ph: p.after.ph, tempF: cur.tempF, ta: p.after.ta, ch: p.after.ch, cya: p.after.cya, tds: cur.tds });
+    const haveTest = [cur.ph, cur.tempF, cur.ta, cur.ch].every(fin);
+    const haveTargets = [tgt.ph, tgt.ta, tgt.ch].every(fin);
+    const now = haveTest ? C.lsi(cur) : { value: NaN, tf: NaN, cf: NaN, af: NaN, tdsf: NaN, carb: NaN };
+    const want = (haveTest && haveTargets) ? C.lsi({ ph: tgt.ph, tempF: cur.tempF, ta: tgt.ta, ch: tgt.ch, cya: tgt.cya, tds: cur.tds }) : { value: NaN };
+    const canPlan = haveTest && haveTargets && fin(cur.volume) && cur.volume > 0;
+    const p = canPlan ? C.plan(cur, tgt, opt) : null;
+    const after = p ? C.lsi({ ph: p.after.ph, tempF: cur.tempF, ta: p.after.ta, ch: p.after.ch, cya: p.after.cya, tds: cur.tds }) : { value: NaN };
     last = { cur, tgt, opt, now, want, p, after };
 
     // hero
     const dNow = C.describe(now.value), dAfter = C.describe(after.value);
-    setText("tLsi", signed(now.value, 2)); setText("tLsiWord", dNow.word);
-    setText("tLsiAfter", signed(after.value, 2)); setText("tLsiAfterWord", dAfter.word + " at the target readings");
-    document.getElementById("tCarb").innerHTML = fmt.int(now.carb) + "<small>PPM</small>";
-    document.getElementById("tVol").innerHTML = fmt.int(cur.volume) + "<small>GAL</small>";
+    setText("tLsi", signed(now.value, 2)); setText("tLsiWord", haveTest ? dNow.word : "Enter the water test");
+    setText("tLsiAfter", signed(after.value, 2)); setText("tLsiAfterWord", p ? dAfter.word + " after the plan" : "Needs targets and volume");
+    document.getElementById("tCarb").innerHTML = fin(now.carb) ? fmt.int(now.carb) + "<small>PPM</small>" : "—";
+    document.getElementById("tVol").innerHTML = fin(cur.volume) && cur.volume > 0 ? fmt.int(cur.volume) + "<small>GAL</small>" : "—";
 
     // step 1
-    const d = gauge("lsiValue", "lsiWord", "needle", now.value);
-    setText("lsiDesc", d.text);
-    setText("fPh", cur.ph.toFixed(1));
-    setText("fTf", now.tf.toFixed(2)); setText("fTfSub", tempLabel(cur.tempF));
-    setText("fCf", now.cf.toFixed(2)); setText("fCfSub", fmt.int(cur.ch) + " ppm");
-    setText("fAf", now.af.toFixed(2)); setText("fAfSub", fmt.int(now.carb) + " ppm carbonate");
-    setText("fTds", now.tdsf.toFixed(1)); setText("fTdsSub", fmt.int(cur.tds) + " ppm");
-    setText("formula", "LSI = " + cur.ph.toFixed(1) + " + " + now.tf.toFixed(2) + " + " + now.cf.toFixed(2) + " + " + now.af.toFixed(2) + " − " + now.tdsf.toFixed(1) + " = " + signed(now.value, 2));
+    const d = gauge("lsiValue", "lsiWord", "needle", now.value, "Enter pH, temperature, alkalinity and calcium");
+    setText("lsiDesc", haveTest ? d.text : "");
+    setText("fPh", f2(cur.ph, 1));
+    setText("fTf", f2(now.tf, 2)); setText("fTfSub", tempLabel(cur.tempF));
+    setText("fCf", f2(now.cf, 2)); setText("fCfSub", fin(cur.ch) ? fmt.int(cur.ch) + " ppm" : "—");
+    setText("fAf", f2(now.af, 2)); setText("fAfSub", fin(now.carb) ? fmt.int(now.carb) + " ppm carbonate" + (cur.cyaBlank ? " (CYA 0)" : "") : "—");
+    setText("fTds", f2(now.tdsf, 1)); setText("fTdsSub", cur.tdsBlank ? "assumed under 1,000 ppm" : fmt.int(cur.tds) + " ppm");
+    setText("formula", haveTest
+      ? "LSI = " + cur.ph.toFixed(1) + " + " + now.tf.toFixed(2) + " + " + now.cf.toFixed(2) + " + " + now.af.toFixed(2) + " − " + now.tdsf.toFixed(1) + " = " + signed(now.value, 2)
+      : "LSI = pH + TF + CF + AF − TDSF");
 
     // step 2
-    gauge("lsiTValue", "lsiTWord", "needleT", want.value);
+    gauge("lsiTValue", "lsiTWord", "needleT", want.value, haveTest ? "Enter the target readings" : "Enter the water test first");
     const delta = (id, a, b, dec, unitTxt) => {
-      const dv = b - a;
       const el = document.getElementById(id);
+      if (!fin(a) || !fin(b)) { el.textContent = "—"; return; }
+      const dv = b - a;
       el.textContent = Math.abs(dv) < (dec ? 0.05 : 0.5) ? "Hold at " + fmt.dec(a, dec) + (unitTxt || "") : fmt.dec(a, dec) + " → " + fmt.dec(b, dec) + (unitTxt || "") + "  (" + signed(dv, dec) + ")";
     };
     delta("dPh", cur.ph, tgt.ph, 1, ""); delta("dTa", cur.ta, tgt.ta, 0, " ppm"); delta("dCh", cur.ch, tgt.ch, 0, " ppm"); delta("dCya", cur.cya, tgt.cya, 0, " ppm");
     const ft = document.getElementById("flagTarget");
-    ft.hidden = p.warnings.length === 0; ft.textContent = p.warnings.join(" ");
+    ft.hidden = !p || p.warnings.length === 0; ft.textContent = p ? p.warnings.join(" ") : "";
 
     // step 3
     const plan = document.getElementById("plan");
-    plan.innerHTML = p.steps.map((st, i) => {
-      const amt = amountOf(st);
-      const cls = (st.kind === "none" || st.kind === "info") ? "is-none" : st.kind === "drain" ? "is-drain" : st.kind === "air" ? "is-air" : "";
-      const stages = st.stages > 1 && amt ? `<p><strong>Split into ${st.stages} applications</strong> of about ${st.amount.liquid ? liquid(st.amount.floz / st.stages).big : dry(st.amount.grams / st.stages).big} each, retesting between them.</p>` : "";
-      return `<div class="dose ${cls}">
-        <div class="dose-head"><h3>${i + 1}. ${st.title}</h3></div>
-        ${amt ? `<div class="dose-amt"><span class="big">${amt.big}</span><span class="alt">${amt.alt}</span></div>` : ""}
-        ${st.why ? `<p>${st.why}</p>` : ""}
-        ${stages}
-      </div>`;
-    }).join("");
-    setText("aPh", p.after.ph.toFixed(1)); setText("aTa", fmt.int(p.after.ta)); setText("aCh", fmt.int(p.after.ch)); setText("aCya", fmt.int(p.after.cya));
-    const aL = document.getElementById("aLsi"); aL.textContent = signed(after.value, 2); setText("aLsiWord", dAfter.word);
+    if (!p) {
+      const missing = [];
+      if (!(fin(cur.volume) && cur.volume > 0)) missing.push("the pool volume");
+      if (!haveTest) missing.push("the water test (pH, temperature, alkalinity, calcium)");
+      if (!haveTargets) missing.push("the target pH, alkalinity and calcium");
+      plan.innerHTML = `<div class="dose is-none"><div class="dose-head"><h3>Amounts appear here</h3></div><p>Still needed: ${missing.join("; ")}.</p></div>`;
+    } else {
+      plan.innerHTML = p.steps.map((st, i) => {
+        const amt = amountOf(st);
+        const cls = (st.kind === "none" || st.kind === "info") ? "is-none" : st.kind === "drain" ? "is-drain" : st.kind === "air" ? "is-air" : "";
+        const stages = st.stages > 1 && amt ? `<p><strong>Split into ${st.stages} applications</strong> of about ${st.amount.liquid ? liquid(st.amount.floz / st.stages).big : dry(st.amount.grams / st.stages).big} each, retesting between them.</p>` : "";
+        return `<div class="dose ${cls}">
+          <div class="dose-head"><h3>${i + 1}. ${st.title}</h3></div>
+          ${amt ? `<div class="dose-amt"><span class="big">${amt.big}</span><span class="alt">${amt.alt}</span></div>` : ""}
+          ${st.why ? `<p>${st.why}</p>` : ""}
+          ${stages}
+        </div>`;
+      }).join("");
+    }
+    setText("aPh", p ? p.after.ph.toFixed(1) : "—"); setText("aTa", p ? fmt.int(p.after.ta) : "—"); setText("aCh", p ? fmt.int(p.after.ch) : "—"); setText("aCya", p ? fmt.int(p.after.cya) : "—");
+    setText("aLsi", signed(after.value, 2)); setText("aLsiWord", p ? dAfter.word : "—");
     store.save();
   }
 
@@ -368,11 +390,12 @@
     if (!last) return "";
     const { cur, tgt, now, p, after } = last;
     const L = [];
-    L.push("LSI & DOSING PLAN — " + fmt.int(cur.volume) + " gal");
-    L.push("Test: pH " + cur.ph.toFixed(1) + " · " + tempLabel(cur.tempF) + " · TA " + fmt.int(cur.ta) + " · CH " + fmt.int(cur.ch) + " · CYA " + fmt.int(cur.cya) + " · TDS " + fmt.int(cur.tds));
-    L.push("LSI now: " + signed(now.value, 2) + " (" + C.describe(now.value).word + ")   carbonate alkalinity " + fmt.int(now.carb) + " ppm");
-    L.push("Targets: pH " + tgt.ph.toFixed(1) + " · TA " + fmt.int(tgt.ta) + " · CH " + fmt.int(tgt.ch) + " · CYA " + fmt.int(tgt.cya));
+    L.push("LSI & DOSING PLAN — " + (fin(cur.volume) ? fmt.int(cur.volume) + " gal" : "volume not entered"));
+    L.push("Test: pH " + f2(cur.ph, 1) + " · " + tempLabel(cur.tempF) + " · TA " + fmt.int(cur.ta) + " · CH " + fmt.int(cur.ch) + " · CYA " + fmt.int(cur.cya) + " · TDS " + (cur.tdsBlank ? "under 1,000" : fmt.int(cur.tds)));
+    L.push("LSI now: " + signed(now.value, 2) + (fin(now.value) ? " (" + C.describe(now.value).word + ")   carbonate alkalinity " + fmt.int(now.carb) + " ppm" : ""));
+    L.push("Targets: pH " + f2(tgt.ph, 1) + " · TA " + fmt.int(tgt.ta) + " · CH " + fmt.int(tgt.ch) + " · CYA " + fmt.int(tgt.cya));
     L.push("");
+    if (!p) { L.push("Enter the pool volume, the water test and the targets to get amounts."); return L.join("\n"); }
     p.steps.forEach((st, i) => {
       const amt = amountOf(st);
       L.push((i + 1) + ". " + st.title + (amt ? ": " + amt.big + " (" + amt.alt + ")" : ""));
@@ -387,7 +410,7 @@
   function setUnit(u) {
     if (u === unit) return;
     const t = num("temp");
-    if (Number.isFinite(t)) document.getElementById("temp").value = u === "C" ? Math.round(C.fToC(t)) : Math.round(C.cToF(t));
+    if (fin(t)) document.getElementById("temp").value = u === "C" ? Math.round(C.fToC(t)) : Math.round(C.cToF(t));
     unit = u;
     document.getElementById("unitF").setAttribute("aria-pressed", String(u === "F"));
     document.getElementById("unitC").setAttribute("aria-pressed", String(u === "C"));
@@ -401,20 +424,19 @@
 
   IDS.concat(["noAeration"]).forEach((id) => { const el = document.getElementById(id); el.addEventListener("input", render); el.addEventListener("change", render); });
   document.getElementById("suggestBtn").addEventListener("click", () => {
-    const s = C.suggest(current());
+    const cur = current();
+    if (!fin(cur.tempF)) { toast("Enter the water temperature first"); document.getElementById("temp").focus(); return; }
+    const s = C.suggest(cur);
     document.getElementById("tPh").value = s.ph; document.getElementById("tTa").value = s.ta; document.getElementById("tCh").value = s.ch; document.getElementById("tCya").value = s.cya;
     render(); toast("Targets set for a balanced index");
   });
   document.getElementById("copyBtn").addEventListener("click", () => copyText(summaryText()));
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    unit = "F";
-    document.getElementById("unitF").setAttribute("aria-pressed", "true");
-    document.getElementById("unitC").setAttribute("aria-pressed", "false");
-    try { localStorage.setItem("fp-lsi-unit", "F"); } catch (e) { /* ignore */ }
-    IDS.forEach((id) => { document.getElementById(id).value = DEFAULTS[id]; });
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    IDS.forEach((id) => { const el = document.getElementById(id); if (el.tagName === "SELECT") el.selectedIndex = 0; else el.value = ""; });
     document.getElementById("noAeration").checked = false;
-    store.clear(); render(); toast("Example values restored");
+    store.clear(); render(); store.clear(); toast("All fields cleared");
   });
 
   render();
 })();
+

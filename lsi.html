@@ -10,7 +10,7 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -41,13 +41,12 @@
   <main id="app" tabindex="-1">
     <div class="wrap">
       <div class="page-title">
-        <a class="backlink" href="index.html">Back to the Variable Speed Pump Calculator</a>
+        <a class="backlink" href="index.html">Variable Speed Pump Calculator</a>
         <span class="eyebrow">Langelier Saturation Index</span>
         <h1>LSI &amp; Dosing Calculator</h1>
-        <p class="lede">Enter the water test to see the saturation index, set the readings you want, then pick the chemicals on the truck to get the amounts for this pool.</p>
-        <div class="page-actions no-print">
-          <button class="btn btn-ghost btn-sm" id="printBtn" type="button">Print / save as PDF</button>
-          <button class="btn btn-ghost btn-sm" id="copyBtn" type="button">Copy dosing plan</button>
+                <div class="page-actions no-print">
+          <button class="btn btn-ghost btn-sm" id="printBtn" type="button">Print</button>
+          <button class="btn btn-ghost btn-sm" id="copyBtn" type="button">Copy plan</button>
           <button class="btn btn-ghost btn-sm" id="clearBtn" type="button">Clear all fields</button>
         </div>
       </div>
@@ -55,13 +54,13 @@
       <section class="hero" aria-labelledby="heroTitle">
         <div class="hero-head">
           <div class="hero-title" id="heroTitle">Water balance</div>
-          <p class="hero-note">Balanced water is an LSI between −0.3 and +0.3. Below is corrosive, above is scale-forming. Entries are saved on this device until you clear them.</p>
+          <p class="hero-note">Balanced −0.3 … +0.3 · below corrosive · above scale-forming</p>
         </div>
         <div class="tiles">
           <div class="tile is-key"><span class="tile-label">Current LSI</span><span class="tile-value" id="tLsi">—</span><span class="tile-sub" id="tLsiWord">—</span></div>
-          <div class="tile"><span class="tile-label">After dosing</span><span class="tile-value" id="tLsiAfter">—</span><span class="tile-sub" id="tLsiAfterWord">At the target readings</span></div>
-          <div class="tile"><span class="tile-label">Carbonate alkalinity</span><span class="tile-value" id="tCarb">—</span><span class="tile-sub">Total alkalinity less the cyanurate share</span></div>
-          <div class="tile"><span class="tile-label">Dosing basis</span><span class="tile-value" id="tVol">—</span><span class="tile-sub">Pool volume</span></div>
+          <div class="tile"><span class="tile-label">After dosing</span><span class="tile-value" id="tLsiAfter">—</span><span class="tile-sub" id="tLsiAfterWord">At targets</span></div>
+          <div class="tile"><span class="tile-label">Carbonate alk</span><span class="tile-value" id="tCarb">—</span><span class="tile-sub">TA − cyanurate</span></div>
+          <div class="tile"><span class="tile-label">Volume</span><span class="tile-value" id="tVol">—</span><span class="tile-sub">Dosing basis</span></div>
         </div>
       </section>
 
@@ -69,27 +68,27 @@
 
         <!-- STEP 1 -->
         <section class="step" aria-labelledby="s1">
-          <div class="step-head"><span class="step-n">1</span><div><h2 id="s1">Water test</h2><p>Readings from the test kit. Temperature is the water, not the air.</p></div></div>
+          <div class="step-head"><span class="step-n">1</span><div><h2 id="s1">Water test</h2><p>Test kit readings · water temperature</p></div></div>
           <div class="step-body">
             <div class="inputs">
               <div class="field">
-                <label for="lsiVolume">Pool water volume</label>
+                <label for="lsiVolume">Pool volume</label>
                 <div class="control"><input type="number" id="lsiVolume" inputmode="decimal" min="0" step="100"><span class="unit">gallons</span></div>
               </div>
               <div class="two">
                 <div class="field"><label for="ph">pH</label><input type="number" id="ph" inputmode="decimal" min="6" max="9" step="0.1"></div>
                 <div class="field">
-                  <label for="temp">Water temperature</label>
+                  <label for="temp">Temperature</label>
                   <div class="control"><input type="number" id="temp" inputmode="decimal" step="1"><span class="unit" style="padding:0"><span class="seg" style="border:0;border-radius:0 8px 8px 0;background:transparent"><button type="button" id="unitF" aria-pressed="true">°F</button><button type="button" id="unitC" aria-pressed="false">°C</button></span></span></div>
                 </div>
               </div>
               <div class="two">
-                <div class="field"><label for="ta">Total alkalinity</label><div class="control"><input type="number" id="ta" inputmode="decimal" min="0" step="10"><span class="unit">ppm</span></div></div>
-                <div class="field"><label for="ch">Calcium hardness</label><div class="control"><input type="number" id="ch" inputmode="decimal" min="0" step="10"><span class="unit">ppm</span></div></div>
+                <div class="field"><label for="ta">Total alkalinity (TA)</label><div class="control"><input type="number" id="ta" inputmode="decimal" min="0" step="10"><span class="unit">ppm</span></div></div>
+                <div class="field"><label for="ch">Calcium hardness (CH)</label><div class="control"><input type="number" id="ch" inputmode="decimal" min="0" step="10"><span class="unit">ppm</span></div></div>
               </div>
               <div class="two">
-                <div class="field"><label for="cya">Cyanuric acid</label><div class="control"><input type="number" id="cya" inputmode="decimal" min="0" step="5"><span class="unit">ppm</span></div><span class="hint">Corrects alkalinity for the cyanurate share. Blank counts as 0.</span></div>
-                <div class="field"><label for="tds">Total dissolved solids</label><div class="control"><input type="number" id="tds" inputmode="decimal" min="0" step="100"><span class="unit">ppm</span></div><span class="hint">Salt pools: about salt ppm + 1,000. Blank counts as under 1,000.</span></div>
+                <div class="field"><label for="cya">Cyanuric acid (CYA)</label><div class="control"><input type="number" id="cya" inputmode="decimal" min="0" step="5"><span class="unit">ppm</span></div><span class="hint">Blank = 0</span></div>
+                <div class="field"><label for="tds">TDS</label><div class="control"><input type="number" id="tds" inputmode="decimal" min="0" step="100"><span class="unit">ppm</span></div><span class="hint">Salt pool ≈ salt + 1,000 · blank = under 1,000</span></div>
               </div>
             </div>
             <div class="results">
@@ -121,26 +120,26 @@
                 <div class="factor is-minus"><span class="f-label">TDS</span><span class="f-value" id="fTds">—</span><span class="f-sub" id="fTdsSub">—</span></div>
               </div>
               <div class="formula" id="formula">LSI = pH + TF + CF + AF − TDSF</div>
-              <p class="small muted" style="margin:0">Factors follow the APSP / Taylor saturation index table, read between the chart points. Alkalinity is corrected for cyanuric acid at the tested pH before its factor is looked up.</p>
+              <p class="small muted">APSP / Taylor factor table, interpolated · AF uses TA corrected for CYA at the tested pH</p>
             </div>
           </div>
         </section>
 
         <!-- STEP 2 -->
         <section class="step" aria-labelledby="s2">
-          <div class="step-head"><span class="step-n">2</span><div><h2 id="s2">Target readings</h2><p>Where you want the water to end up. The projected index updates as you change them.</p></div></div>
+          <div class="step-head"><span class="step-n">2</span><div><h2 id="s2">Targets</h2><p>Projected index at the target readings</p></div></div>
           <div class="step-body">
             <div class="inputs">
               <div class="two">
                 <div class="field"><label for="tPh">Target pH</label><input type="number" id="tPh" inputmode="decimal" min="6.8" max="8.2" step="0.1"></div>
-                <div class="field"><label for="tTa">Target total alkalinity</label><div class="control"><input type="number" id="tTa" inputmode="decimal" min="0" step="10"><span class="unit">ppm</span></div></div>
+                <div class="field"><label for="tTa">Target TA</label><div class="control"><input type="number" id="tTa" inputmode="decimal" min="0" step="10"><span class="unit">ppm</span></div></div>
               </div>
               <div class="two">
-                <div class="field"><label for="tCh">Target calcium hardness</label><div class="control"><input type="number" id="tCh" inputmode="decimal" min="0" step="10"><span class="unit">ppm</span></div></div>
-                <div class="field"><label for="tCya">Target cyanuric acid</label><div class="control"><input type="number" id="tCya" inputmode="decimal" min="0" step="5"><span class="unit">ppm</span></div></div>
+                <div class="field"><label for="tCh">Target CH</label><div class="control"><input type="number" id="tCh" inputmode="decimal" min="0" step="10"><span class="unit">ppm</span></div></div>
+                <div class="field"><label for="tCya">Target CYA</label><div class="control"><input type="number" id="tCya" inputmode="decimal" min="0" step="5"><span class="unit">ppm</span></div></div>
               </div>
-              <div class="field"><label for="fillCh">Fill water calcium hardness <span class="muted">(optional)</span></label><div class="control"><input type="number" id="fillCh" inputmode="decimal" min="0" step="10" placeholder="0"><span class="unit">ppm</span></div><span class="hint">Only used when calcium has to come down by draining and refilling.</span></div>
-              <div class="row no-print"><button class="btn btn-primary btn-sm" id="suggestBtn" type="button">Suggest balanced targets</button><span class="small muted">pH 7.5, alkalinity 90, calcium set so the index lands at 0.</span></div>
+              <div class="field"><label for="fillCh">Fill water CH (optional)</label><div class="control"><input type="number" id="fillCh" inputmode="decimal" min="0" step="10" placeholder="0"><span class="unit">ppm</span></div><span class="hint">Used only for drain-and-refill</span></div>
+              <div class="row no-print"><button class="btn btn-primary btn-sm" id="suggestBtn" type="button">Suggest targets</button><span class="small muted">pH 7.5 · TA 90 · CH solved for LSI 0</span></div>
             </div>
             <div class="results">
               <div class="gauge" aria-live="polite">
@@ -161,11 +160,11 @@
                   <span class="scale-tick" style="left:100%">+1.0</span>
                 </div>
               </div>
-              <h3>Changes needed</h3>
+              <h3>Delta</h3>
               <div class="kv"><span class="k">pH</span><span class="v" id="dPh">—</span></div>
-              <div class="kv"><span class="k">Total alkalinity</span><span class="v" id="dTa">—</span></div>
-              <div class="kv"><span class="k">Calcium hardness</span><span class="v" id="dCh">—</span></div>
-              <div class="kv"><span class="k">Cyanuric acid</span><span class="v" id="dCya">—</span></div>
+              <div class="kv"><span class="k">TA</span><span class="v" id="dTa">—</span></div>
+              <div class="kv"><span class="k">CH</span><span class="v" id="dCh">—</span></div>
+              <div class="kv"><span class="k">CYA</span><span class="v" id="dCya">—</span></div>
               <p class="flag is-bad" id="flagTarget" hidden></p>
             </div>
           </div>
@@ -173,11 +172,11 @@
 
         <!-- STEP 3 -->
         <section class="step" aria-labelledby="s3">
-          <div class="step-head"><span class="step-n">3</span><div><h2 id="s3">Chemicals and amounts</h2><p>Choose the products you are using. Amounts are for the pool volume in step 1, in the order to add them.</p></div></div>
+          <div class="step-head"><span class="step-n">3</span><div><h2 id="s3">Dosing</h2><p>Amounts for the volume in step 1, in order of addition</p></div></div>
           <div class="step-body">
             <div class="inputs">
               <div class="field">
-                <label for="acidType">Acid for lowering pH and alkalinity</label>
+                <label for="acidType">Acid</label>
                 <select id="acidType">
                   <option value="ma31">Muriatic acid 31.45% (20° Baumé)</option>
                   <option value="ma20">Muriatic acid 20%</option>
@@ -186,9 +185,9 @@
                 </select>
               </div>
               <div class="field">
-                <label for="baseNote">Raising pH and alkalinity</label>
-                <select id="baseNote" disabled><option>Soda ash for pH · sodium bicarbonate for alkalinity</option></select>
-                <span class="hint">The calculator splits the job between the two so both readings land on target.</span>
+                <label for="baseNote">Base</label>
+                <select id="baseNote" disabled><option>Soda ash (pH) · sodium bicarbonate (TA)</option></select>
+                
               </div>
               <div class="field">
                 <label for="calType">Calcium increaser</label>
@@ -203,20 +202,14 @@
                   <option value="gran">Cyanuric acid, granular (100%)</option>
                 </select>
               </div>
-              <label class="check"><input type="checkbox" id="noAeration"><span>Aeration is not practical here. Use soda ash to raise pH even though it also raises alkalinity.</span></label>
+              <label class="check"><input type="checkbox" id="noAeration"><span>No aeration available: raise pH with soda ash (raises TA)</span></label>
               <div class="notice">
-                <strong>Before you dose</strong>
-                <ul>
-                  <li>Pump running. Add chemicals to the water, never water to the chemical, and never mix products.</li>
-                  <li>Add acid in the deep end away from fittings; pre-dissolve dry products in a bucket.</li>
-                  <li>Large doses are split into stages here. Wait 4–6 hours between stages and retest before the next one.</li>
-                  <li>Adjust alkalinity first, then pH, then calcium, then stabilizer.</li>
-                </ul>
+                <strong>Dosing</strong>: pump running · chemical into water, never water into chemical · never mix products · acid in the deep end away from fittings · pre-dissolve dry products · 4–6 h between stages, retest · order: TA, pH, CH, CYA.
               </div>
             </div>
             <div class="results">
               <div class="plan" id="plan"></div>
-              <h3>Readings after the plan</h3>
+              <h3>After plan</h3>
               <div class="after">
                 <div class="factor"><span class="f-label">pH</span><span class="f-value" id="aPh">—</span></div>
                 <div class="factor"><span class="f-label">Alkalinity</span><span class="f-value" id="aTa">—</span><span class="f-sub">ppm</span></div>
@@ -224,7 +217,7 @@
                 <div class="factor"><span class="f-label">CYA</span><span class="f-value" id="aCya">—</span><span class="f-sub">ppm</span></div>
                 <div class="factor"><span class="f-label">LSI</span><span class="f-value" id="aLsi">—</span><span class="f-sub" id="aLsiWord">—</span></div>
               </div>
-              <p class="small muted" style="margin:0">Amounts are calculated from the chemistry of the water (carbonate and cyanurate buffering), not from a fixed chart, so the pH dose changes with alkalinity and stabilizer the way it does in the pool. Treat them as the first application and retest.</p>
+              <p class="small muted">Doses from carbonate/cyanurate buffering, not a fixed chart · first application, then retest</p>
             </div>
           </div>
         </section>
@@ -232,11 +225,11 @@
 
       <a class="xlink no-print" href="index.html">
         <div>
-          <div class="xlink-label">Back to</div>
+          <div class="xlink-label">Back</div>
           <div class="xlink-title">Variable Speed Pump Calculator</div>
-          <div class="xlink-sub">ANSI/APSP-15 flow, RPM settings, pipe limits, filter sizing and operating cost.</div>
+          <div class="xlink-sub">ANSI/APSP-15 flow, RPM, pipe limits, filter sizing, operating cost</div>
         </div>
-        <span class="btn btn-accent">Open the pump calculator</span>
+        <span class="btn btn-accent btn-sm">Open</span>
       </a>
     </div>
   </main>
@@ -257,4 +250,5 @@
   <script src="js/lsi.js"></script>
 </body>
 </html>
+
 

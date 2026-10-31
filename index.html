@@ -43,11 +43,11 @@
       <div class="page-title">
         <span class="eyebrow">ANSI / APSP-15 worksheet</span>
         <h1>Variable Speed Pump Calculator</h1>
-        <p class="lede">Work down the steps with your field measurements. Every number updates as you type, and the speeds to program are summarized at the top.</p>
+        <p class="lede">Work down the steps with your field measurements. Every number updates as you type, the speeds to program are summarized at the top, and your last entries are kept on this device.</p>
         <div class="page-actions no-print">
           <button class="btn btn-ghost btn-sm" id="printBtn" type="button">Print / save as PDF</button>
           <button class="btn btn-ghost btn-sm" id="copyBtn" type="button">Copy summary</button>
-          <button class="btn btn-ghost btn-sm" id="resetBtn" type="button">Reset to example values</button>
+          <button class="btn btn-ghost btn-sm" id="clearBtn" type="button">Clear all fields</button>
           <a class="backlink" href="lsi.html" style="margin-left:auto">Go to the LSI &amp; Dosing Calculator</a>
         </div>
       </div>
@@ -55,7 +55,7 @@
       <section class="hero" aria-labelledby="heroTitle">
         <div class="hero-head">
           <div class="hero-title" id="heroTitle">Speeds to program</div>
-          <p class="hero-note">Based on <span id="hVolume">15,000</span> gal, <span id="hSuction">3"</span> suction / <span id="hPressure">2.5"</span> pressure pipe, <span id="hGpm">75</span> GPM measured at 2400 RPM.</p>
+          <p class="hero-note" id="heroNote">Enter the pool, plumbing and pump readings below. Entries are saved on this device until you clear them.</p>
         </div>
         <div class="tiles">
           <div class="tile is-key"><span class="tile-label">Minimum RPM</span><span class="tile-value" id="tMin">—</span><span class="tile-sub">Filtration · 2 turnovers / day</span></div>
@@ -76,7 +76,7 @@
             <div class="inputs">
               <div class="field">
                 <label for="volume">Pool water volume</label>
-                <div class="control"><input type="number" id="volume" inputmode="decimal" min="0" step="100" value="15000"><span class="unit">gallons</span></div>
+                <div class="control"><input type="number" id="volume" inputmode="decimal" min="0" step="100"><span class="unit">gallons</span></div>
                 <details class="more">
                   <summary>Don't know the volume? Estimate it</summary>
                   <div class="two" style="margin-top:8px">
@@ -91,11 +91,11 @@
               <div class="two">
                 <div class="field">
                   <label for="suction">Smallest suction pipe (inlet side)</label>
-                  <div class="control"><select id="suction"><option value="1">1</option><option value="1.5">1½</option><option value="2">2</option><option value="2.5">2½</option><option value="3" selected>3</option><option value="4">4</option><option value="6">6</option></select><span class="unit">in</span></div>
+                  <div class="control"><select id="suction"><option value="">Select…</option><option value="1">1</option><option value="1.5">1½</option><option value="2">2</option><option value="2.5">2½</option><option value="3">3</option><option value="4">4</option><option value="6">6</option></select><span class="unit">in</span></div>
                 </div>
                 <div class="field">
                   <label for="pressure">Smallest pressure pipe (outlet side)</label>
-                  <div class="control"><select id="pressure"><option value="1">1</option><option value="1.5">1½</option><option value="2">2</option><option value="2.5" selected>2½</option><option value="3">3</option><option value="4">4</option><option value="6">6</option></select><span class="unit">in</span></div>
+                  <div class="control"><select id="pressure"><option value="">Select…</option><option value="1">1</option><option value="1.5">1½</option><option value="2">2</option><option value="2.5">2½</option><option value="3">3</option><option value="4">4</option><option value="6">6</option></select><span class="unit">in</span></div>
                 </div>
               </div>
             </div>
@@ -120,12 +120,13 @@
           <div class="step-body">
             <div class="inputs">
               <div class="two">
-                <div class="field"><label for="vacuum">Vacuum gauge reading</label><div class="control"><input type="number" id="vacuum" inputmode="decimal" min="0" step="0.5" value="5"><span class="unit">in Hg</span></div></div>
-                <div class="field"><label for="psi">Pressure gauge reading</label><div class="control"><input type="number" id="psi" inputmode="decimal" min="0" step="0.5" value="10"><span class="unit">psi</span></div></div>
+                <div class="field"><label for="vacuum">Vacuum gauge reading</label><div class="control"><input type="number" id="vacuum" inputmode="decimal" min="0" step="0.5"><span class="unit">in Hg</span></div></div>
+                <div class="field"><label for="psi">Pressure gauge reading</label><div class="control"><input type="number" id="psi" inputmode="decimal" min="0" step="0.5"><span class="unit">psi</span></div></div>
               </div>
               <div class="field">
                 <label for="model">Pump model</label>
                 <select id="model">
+                  <option value="">Select…</option>
                   <option value="JEP2.0SVRS">JEP2.0SVRS</option>
                   <option value="VSFHP085AUT">VSFHP085AUT</option>
                   <option value="VSFHP085JEP">VSFHP085JEP</option>
@@ -143,7 +144,7 @@
                   <option value="VSPHP270DV2A">VSPHP270DV2A</option>
                   <option value="VSPHP270JEP">VSPHP270JEP</option>
                   <option value="VSSHP220AUT">VSSHP220AUT</option>
-                  <option value="VSSHP220DV2A" selected>VSSHP220DV2A</option>
+                  <option value="VSSHP220DV2A">VSSHP220DV2A</option>
                   <option value="VSSHP270AUT">VSSHP270AUT</option>
                   <option value="VSSHP270DV2A">VSSHP270DV2A</option>
                   <option value="VSSHP270SVRS">VSSHP270SVRS</option>
@@ -154,7 +155,7 @@
               </div>
               <div class="field">
                 <label for="gpm2400">Measured flow at 2400 RPM</label>
-                <div class="control"><input type="number" id="gpm2400" inputmode="decimal" min="1" step="1" value="75"><span class="unit">GPM</span></div>
+                <div class="control"><input type="number" id="gpm2400" inputmode="decimal" min="1" step="1"><span class="unit">GPM</span></div>
                 <span class="hint">From a flowmeter, or read off the pump curve at the TDH shown here.</span>
               </div>
             </div>
@@ -202,19 +203,19 @@
           <div class="step-body">
             <div class="inputs">
               <div class="two">
-                <div class="field"><label for="volts">Voltage, L1 to L2</label><div class="control"><input type="number" id="volts" inputmode="decimal" min="0" step="1" value="249"><span class="unit">VAC</span></div></div>
-                <div class="field"><label for="kwh">Customer's electric rate</label><div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">$</span><input type="number" id="kwh" inputmode="decimal" min="0" step="0.01" value="0.17" style="border-radius:0 8px 8px 0"><span class="unit">per kWh</span></div></div>
+                <div class="field"><label for="volts">Voltage, L1 to L2</label><div class="control"><input type="number" id="volts" inputmode="decimal" min="0" step="1"><span class="unit">VAC</span></div></div>
+                <div class="field"><label for="kwh">Customer's electric rate</label><div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">$</span><input type="number" id="kwh" inputmode="decimal" min="0" step="0.01" style="border-radius:0 8px 8px 0"><span class="unit">per kWh</span></div></div>
               </div>
               <div class="field"><label>Amp draw at minimum speed</label>
                 <div class="two">
-                  <div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">L1</span><input type="number" id="ampsMinL1" inputmode="decimal" min="0" step="0.01" value="0.85" aria-label="L1 amps at minimum speed" style="border-radius:0 8px 8px 0"><span class="unit">A</span></div>
-                  <div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">L2 / N</span><input type="number" id="ampsMinL2" inputmode="decimal" min="0" step="0.01" value="0.85" aria-label="L2 amps at minimum speed" style="border-radius:0 8px 8px 0"><span class="unit">A</span></div>
+                  <div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">L1</span><input type="number" id="ampsMinL1" inputmode="decimal" min="0" step="0.01" aria-label="L1 amps at minimum speed" style="border-radius:0 8px 8px 0"><span class="unit">A</span></div>
+                  <div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">L2 / N</span><input type="number" id="ampsMinL2" inputmode="decimal" min="0" step="0.01" aria-label="L2 amps at minimum speed" style="border-radius:0 8px 8px 0"><span class="unit">A</span></div>
                 </div>
               </div>
               <div class="field"><label>Amp draw at maximum speed</label>
                 <div class="two">
-                  <div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">L1</span><input type="number" id="ampsMaxL1" inputmode="decimal" min="0" step="0.01" value="10.2" aria-label="L1 amps at maximum speed" style="border-radius:0 8px 8px 0"><span class="unit">A</span></div>
-                  <div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">L2 / N</span><input type="number" id="ampsMaxL2" inputmode="decimal" min="0" step="0.01" value="10.2" aria-label="L2 amps at maximum speed" style="border-radius:0 8px 8px 0"><span class="unit">A</span></div>
+                  <div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">L1</span><input type="number" id="ampsMaxL1" inputmode="decimal" min="0" step="0.01" aria-label="L1 amps at maximum speed" style="border-radius:0 8px 8px 0"><span class="unit">A</span></div>
+                  <div class="control"><span class="unit" style="border-left:1.5px solid #B9C5D2;border-right:0;border-radius:8px 0 0 8px">L2 / N</span><input type="number" id="ampsMaxL2" inputmode="decimal" min="0" step="0.01" aria-label="L2 amps at maximum speed" style="border-radius:0 8px 8px 0"><span class="unit">A</span></div>
                 </div>
                 <span class="hint">On a 115 V pump leave L2 / N at 0 and the L1 reading is used alone.</span>
               </div>
@@ -304,3 +305,4 @@
   <script src="js/pump.js"></script>
 </body>
 </html>
+

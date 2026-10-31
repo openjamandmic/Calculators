@@ -1,0 +1,9 @@
+{
+  "name": "FP Field Calculators",
+  "short_name": "FP Calc",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#EEF2F6",
+  "theme_color": "#0F2D4E",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

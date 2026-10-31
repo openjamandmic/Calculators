@@ -66,7 +66,7 @@
     dec(n, d) { return Number.isFinite(n) ? n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—"; },
     money(n, d) { return Number.isFinite(n) ? "$" + n.toLocaleString("en-US", { minimumFractionDigits: d == null ? 2 : d, maximumFractionDigits: d == null ? 2 : d }) : "—"; },
     pipe(size) {
-      if (size == null) return "—";
+      if (size == null || !Number.isFinite(size)) return "—";
       const whole = Math.floor(size), frac = size - whole;
       const f = frac === 0.5 ? "½" : frac === 0.25 ? "¼" : frac === 0.75 ? "¾" : "";
       return (whole ? whole : "") + f + "\"";
@@ -107,3 +107,4 @@
 
   window.FP = { toast, copyText, fmt, remember, num, setText };
 })();
+

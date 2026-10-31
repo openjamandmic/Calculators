@@ -35,6 +35,7 @@
 
   // Smallest pipe whose limit is above the flow (the worksheet uses "flow < limit").
   function minPipe(gpm, fps) {
+    if (!Number.isFinite(gpm)) return NaN;
     for (const p of PIPE) { if (gpm < (fps === 6 ? p.gpm6 : p.gpm8)) return p.size; }
     return null; // beyond the chart
   }
@@ -91,7 +92,7 @@
     o.maxRpmAop = Math.min(RPM_MAX, (REF_RPM / m) * 90);
     const candidates = [o.maxRpmPressure, o.maxRpmSuction].filter((r) => r.ok).map((r) => r.rpm).concat([o.maxRpmAop]);
     o.rpmMaxRec = Math.min.apply(null, candidates);
-    o.rpmMaxSource = o.rpmMaxRec === o.maxRpmAop ? "90 GPM AOP limit"
+    o.rpmMaxSource = !Number.isFinite(o.rpmMaxRec) ? "" : o.rpmMaxRec === o.maxRpmAop ? "90 GPM AOP limit"
       : (o.maxRpmPressure.ok && o.rpmMaxRec === o.maxRpmPressure.rpm) ? "8 FPS in the pressure pipe" : "6 FPS in the suction pipe";
     // Pipe needed for heater flows (B36–B40)
     o.heaterSuction6 = minPipe(70, 6);
@@ -146,25 +147,26 @@
 
   const IDS = ["volume", "suction", "pressure", "vacuum", "psi", "model", "gpm2400", "volts", "kwh",
     "ampsMinL1", "ampsMinL2", "ampsMaxL1", "ampsMaxL2", "hoursMin", "hoursMax"];
-  const DEFAULTS = { volume: "15000", suction: "3", pressure: "2.5", vacuum: "5", psi: "10", model: "VSSHP220DV2A", gpm2400: "75",
-    volts: "249", kwh: "0.17", ampsMinL1: "0.85", ampsMinL2: "0.85", ampsMaxL1: "10.2", ampsMaxL2: "10.2", hoursMin: "", hoursMax: "" };
   const store = remember("fp-pump-v1", IDS);
   let filterType = "cartridge";
   let last = null;
 
+  // Blank fields stay NaN and their results show as "—"; a blank L2 reading counts as 0 (single-leg pump).
   function inputs() {
-    const n = (id, d) => { const x = num(id); return Number.isFinite(x) ? x : d; };
+    const n = (id) => num(id);
+    const amps = (id) => { const x = num(id); return Number.isFinite(x) ? x : 0; };
+    const g = n("gpm2400");
     return {
-      volume: n("volume", 0), suction: n("suction", 2), pressure: n("pressure", 2),
-      vacuum: n("vacuum", 0), psi: n("psi", 0), gpm2400: Math.max(1, n("gpm2400", 1)),
-      volts: n("volts", 0), kwh: n("kwh", 0),
-      ampsMinL1: n("ampsMinL1", 0), ampsMinL2: n("ampsMinL2", 0), ampsMaxL1: n("ampsMaxL1", 0), ampsMaxL2: n("ampsMaxL2", 0),
+      volume: n("volume"), suction: n("suction"), pressure: n("pressure"),
+      vacuum: n("vacuum"), psi: n("psi"), gpm2400: g > 0 ? g : NaN,
+      volts: n("volts"), kwh: n("kwh"),
+      ampsMinL1: n("ampsMinL1"), ampsMinL2: amps("ampsMinL2"), ampsMaxL1: n("ampsMaxL1"), ampsMaxL2: amps("ampsMaxL2"),
       hoursMin: num("hoursMin"), hoursMax: num("hoursMax"),
       model: document.getElementById("model").value
     };
   }
 
-  function rpmText(r) { return r.ok ? fmt.int(r.rpm) + " RPM" : r.text; }
+  function rpmText(r) { return r.ok ? (Number.isFinite(r.rpm) ? fmt.int(r.rpm) + " RPM" : "—") : r.text; }
   function setRpm(id, r) {
     const el = document.getElementById(id);
     el.textContent = rpmText(r);
@@ -178,8 +180,8 @@
   function tile(id, r, bad) {
     const el = document.getElementById(id);
     const t = el.closest(".tile");
-    if (typeof r === "number") { el.innerHTML = fmt.int(r) + "<small>RPM</small>"; t.classList.remove("is-bad"); return; }
-    if (r.ok) { el.innerHTML = fmt.int(r.rpm) + "<small>RPM</small>"; t.classList.remove("is-bad"); }
+    if (typeof r === "number") { el.innerHTML = Number.isFinite(r) ? fmt.int(r) + "<small>RPM</small>" : "—"; t.classList.remove("is-bad"); return; }
+    if (r.ok) { el.innerHTML = Number.isFinite(r.rpm) ? fmt.int(r.rpm) + "<small>RPM</small>" : "—"; t.classList.remove("is-bad"); }
     else { el.textContent = r.text; t.classList.add("is-bad"); }
   }
 
@@ -189,17 +191,21 @@
     last = { i, o };
 
     // hero
-    setText("hVolume", fmt.int(i.volume)); setText("hSuction", fmt.pipe(i.suction)); setText("hPressure", fmt.pipe(i.pressure)); setText("hGpm", fmt.int(i.gpm2400));
+    const complete = [i.volume, i.suction, i.pressure, i.gpm2400].every(Number.isFinite);
+    setText("heroNote", complete
+      ? "Based on " + fmt.int(i.volume) + " gal, " + fmt.pipe(i.suction) + " suction / " + fmt.pipe(i.pressure) + " pressure pipe, " + fmt.int(i.gpm2400) + " GPM measured at 2400 RPM."
+      : "Enter the pool volume, pipe sizes and the flow measured at 2400 RPM to fill this in. Entries are saved on this device until you clear them.");
     tile("tMin", o.rpmMin);
     tile("tMax", o.rpmMaxRec);
-    setText("tMaxSub", "Set by " + o.rpmMaxSource);
+    setText("tMaxSub", o.rpmMaxSource ? "Set by " + o.rpmMaxSource : "Lowest of the pipe and AOP limits");
     tile("tPeak", o.rpmPeak); tile("tHeater", o.rpmHeater); tile("tHeatPump", o.rpmHeatPump);
-    document.getElementById("tMaxGpm").innerHTML = fmt.int(Math.min(o.maxGpmPressure, o.maxGpmSuction)) + "<small>GPM</small>";
-    setText("tMaxGpmSub", o.maxGpmPressure <= o.maxGpmSuction ? "8 FPS in the pressure pipe" : "6 FPS in the suction pipe");
+    const maxGpm = Math.min(o.maxGpmPressure, o.maxGpmSuction);
+    document.getElementById("tMaxGpm").innerHTML = Number.isFinite(maxGpm) ? fmt.int(maxGpm) + "<small>GPM</small>" : "—";
+    setText("tMaxGpmSub", !Number.isFinite(maxGpm) ? "Limited by pipe velocity" : o.maxGpmPressure <= o.maxGpmSuction ? "8 FPS in the pressure pipe" : "6 FPS in the suction pipe");
 
     // step 1
     setText("minFlow", fmt.int(o.minFlow)); setText("peakFlow", fmt.int(o.peakFlow));
-    const over = (s, fps) => s == null ? "See chart (over " + (fps === 6 ? 534 : 712) + " GPM)" : fmt.pipe(s);
+    const over = (s, fps) => s === null ? "See chart (over " + (fps === 6 ? 534 : 712) + " GPM)" : fmt.pipe(s);
     setText("minSuction6", over(o.minSuction6, 6)); setText("minPressure6", over(o.minPressure6, 6)); setText("minPressure8", over(o.minPressure8, 8));
     setText("lblSuction", fmt.pipe(i.suction)); setText("lblPressure", fmt.pipe(i.pressure));
     setText("maxGpmSuction", fmt.int(o.maxGpmSuction)); setText("maxGpmPressure", fmt.int(o.maxGpmPressure));
@@ -214,8 +220,8 @@
     setFlag("flagHeater", o.flagHeater, tooSmall + " 70 GPM needs at least " + fmt.pipe(o.heaterSuction6) + " suction and " + fmt.pipe(o.heaterPressure8) + " pressure pipe.");
     setFlag("flagHeatPump", o.flagHeatPump, tooSmall + " 55 GPM needs at least " + fmt.pipe(o.heatPumpSuction6) + " suction and " + fmt.pipe(o.heatPumpPressure8) + " pressure pipe.");
     setRpm("maxRpmPressure", o.maxRpmPressure); setRpm("maxRpmSuction", o.maxRpmSuction);
-    setText("maxRpmAop", fmt.int(o.maxRpmAop) + " RPM");
-    setText("rpmMaxRec", fmt.int(o.rpmMaxRec) + " RPM");
+    setText("maxRpmAop", Number.isFinite(o.maxRpmAop) ? fmt.int(o.maxRpmAop) + " RPM" : "—");
+    setText("rpmMaxRec", Number.isFinite(o.rpmMaxRec) ? fmt.int(o.rpmMaxRec) + " RPM" : "—");
     const notes = [];
     if (o.maxRpmPressure.note) notes.push("Pressure pipe: " + o.maxRpmPressure.note);
     if (o.maxRpmSuction.note) notes.push("Suction pipe: " + o.maxRpmSuction.note);
@@ -243,12 +249,13 @@
   function renderFilters(o) {
     const tbody = document.querySelector("#filterTable tbody");
     const rows = o.filters[filterType];
+    const haveFlow = Number.isFinite(o.pumpMaxGpm), havePipe = Number.isFinite(o.maxGpmPressure) && Number.isFinite(o.sqftBasis);
     tbody.innerHTML = rows.map((f) => {
-      const cls = f.ansi ? "is-fit" : (!f.pumpMax && !f.ansi ? "is-dim" : "");
+      const cls = (havePipe && f.ansi) ? "is-fit" : (havePipe && haveFlow && !f.pumpMax && !f.ansi ? "is-dim" : "");
       const sq = filterType === "cartridge" ? fmt.int(f.sqft) : fmt.dec(f.sqft, 2);
-      return `<tr class="${cls}"><td>${f.model}</td><td class="n">${sq}</td><td class="n">${fmt.int(f.gpm)}</td><td class="n">${fmt.int(f.maxRpm)}</td>` +
-        `<td>${f.ansi ? '<span class="pill ok">Fits</span>' : '<span class="pill">Too small</span>'}</td>` +
-        `<td>${f.pumpMax ? '<span class="pill ok">No cap needed</span>' : '<span class="pill warn">Cap at ' + fmt.int(f.maxRpm) + ' RPM</span>'}</td></tr>`;
+      const fit = !havePipe ? '<span class="pill">Needs pipe sizes</span>' : f.ansi ? '<span class="pill ok">Fits</span>' : '<span class="pill">Too small</span>';
+      const cap = !haveFlow ? '<span class="pill">Needs measured flow</span>' : f.pumpMax ? '<span class="pill ok">No cap needed</span>' : '<span class="pill warn">Cap at ' + fmt.int(f.maxRpm) + ' RPM</span>';
+      return `<tr class="${cls}"><td>${f.model}</td><td class="n">${sq}</td><td class="n">${fmt.int(f.gpm)}</td><td class="n">${fmt.int(f.maxRpm)}</td><td>${fit}</td><td>${cap}</td></tr>`;
     }).join("");
   }
 
@@ -295,9 +302,9 @@
     if (last) renderFilters(last.o);
   }));
   document.getElementById("copyBtn").addEventListener("click", () => copyText(summary()));
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    IDS.forEach((id) => { document.getElementById(id).value = DEFAULTS[id]; });
-    store.clear(); render(); toast("Example values restored");
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    IDS.concat(["estLen", "estWid", "estDepth"]).forEach((id) => { document.getElementById(id).value = ""; });
+    store.clear(); estimate(); render(); store.clear(); toast("All fields cleared");
   });
 
   render();
